@@ -160,14 +160,25 @@
           throw new Error('Das Google Sheet ist nicht öffentlich freigegeben ("Jeder mit dem Link").');
         }
 
-        const jsonString = text.substring(47, text.length - 2);
-        const data = JSON.parse(jsonString);
+        // Dynamische Extraktion per RegEx (verhindert JSON-Parse-Fehler)
+        const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/);
+        
+        if (!match || !match[1]) {
+          throw new Error('Das Datenformat von Google Sheets konnte nicht gelesen werden.');
+        }
+
+        const data = JSON.parse(match[1]);
+
+        if (data.status === 'error') {
+          const msg = data.errors && data.errors[0] ? data.errors[0].detailed_message : 'Unbekannter Google-Fehler';
+          throw new Error(`Google Sheets meldet: ${msg}`);
+        }
 
         rawData = parseGoogleSheetData(data.table);
         renderCards(rawData);
 
       } catch (error) {
-        console.error('Fehler:', error);
+        console.error('Fehler beim Laden:', error);
         container.innerHTML = `
           <div class="no-results" style="color: #d9534f;">
             <strong>Fehler beim Laden der Daten!</strong><br><br>
@@ -199,7 +210,7 @@
       container.innerHTML = '';
 
       if (items.length === 0) {
-        container.innerHTML = '<div class="no-results">Keine passenden Einträge vorhanden.</div>';
+        container.innerHTML = '<div class="no-results">Keine Einträge in der Bestellhistorie gefunden.</div>';
         return;
       }
 
