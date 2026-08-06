@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Sheet Viewer</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    :root {
+      --primary-color: #007bff;
+      --bg-color: #f4f6f9;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 1.5rem;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+    }
+
+    header {
+      max-width: 1200px;
+      margin: 0 auto 1.5rem auto;
+    }
+
+    h1 {
+      margin: 0 0 1rem 0;
+      font-size: 1.5rem;
+    }
+
+    /* Suche & Filter-Leiste */
+    .filter-container {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+    }
+
+    /* Responsives Card-Grid */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Einzelne Karte */
+    .card {
+      background: var(--card-bg);
+      border-radius: 10px;
+      padding: 1.25rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      border: 1px solid #eaeaea;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-item {
+      display: flex;
+      flex-direction: column;
+      font-size: 0.9rem;
+    }
+
+    .card-item-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6c757d;
+      font-weight: 600;
+    }
+
+    .card-item-value {
+      font-size: 1rem;
+      color: #212529;
+      word-break: break-word;
+    }
+
+    /* Erstes Feld auf der Karte als Titel hervorheben */
+    .card-item:first-child .card-item-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    .no-results {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 3rem;
+      color: #6c757d;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Aktuelle Übersicht</h1>
+    <div class="filter-container">
+      <input 
+        type="text" 
+        id="search-input" 
+        class="search-input" 
+        placeholder="Suchen..." 
+        oninput="handleSearch()"
+      />
+    </div>
+  </header>
+
+  <main class="cards-grid" id="cards-container">
+    <div class="no-results">Lade Daten aus Google Sheets...</div>
+  </main>
+
+  <script>
+    // Deine Google Sheet ID
+    const SHEET_ID = '1G4e7YcmhUGxaAKk4fVyzZs4wILx4DGCaSp9sg8Ylpe8';
+    const URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+
+    let rawData = [];
+
+    async function loadSheetData() {
+      try {
+        const response = await fetch(URL);
+        const text = await response.text();
+        
+        // Google Viz JSON Bereinigung
+        const jsonString = text.substring(47, text.length - 2);
+        const data = JSON.parse(jsonString);
+
+        rawData = parseGoogleSheetData(data.table);
+        renderCards(rawData);
+      } catch (error) {
+        console.error('Fehler beim Laden:', error);
+        document.getElementById('cards-container').innerHTML = 
+          '<div class="no-results">Fehler beim Laden der Daten. Bitte prüfe die Freigabe der Tabelle.</div>';
+      }
+    }
+
+    function parseGoogleSheetData(table) {
+      const headers = table.cols.map(col => col.label || 'Unbenannt');
+      
+      return table.rows.map(row => {
+        const rowData = {};
+        headers.forEach((header, index) => {
+          const cell = row.c ? row.c[index] : null;
+          rowData[header] = cell ? (cell.f || cell.v ?? '') : '';
+        });
+        return rowData;
+      });
+    }
+
+    function renderCards(items) {
+      const container = document.getElementById('cards-container');
+      container.innerHTML = '';
+
+      if (items.length === 0) {
+        container.innerHTML = '<div class="no-results">Keine passenden Einträge gefunden.</div>';
+        return;
+      }
+
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        Object.entries(item).forEach(([label, value]) => {
+          if (value !== '') {
+            const field = document.createElement('div');
+            field.className = 'card-item';
+            
+            const labelEl = document.createElement('span');
+            labelEl.className = 'card-item-label';
+            labelEl.textContent = label;
+
+            const valueEl = document.createElement('span');
+            valueEl.className = 'card-item-value';
+            valueEl.textContent = value;
+
+            field.appendChild(labelEl);
+            field.appendChild(valueEl);
+            card.appendChild(field);
+          }
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    function handleSearch() {
+      const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+      
+      if (!searchTerm) {
+        renderCards(rawData);
+        return;
+      }
+
+      const filtered = rawData.filter(item => {
+        return Object.values(item).some(val => 
+          String(val).toLowerCase().includes(searchTerm)
+        );
+      });
+
+      renderCards(filtered);
+    }
+
+    // Beim Erstaufruf Daten laden
+    loadSheetData();
+
+    // Service Worker für PWA registrieren
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
