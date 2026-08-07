@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chronik-Übersicht</title>
   
-  <!-- PWA Manifest & Themes -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2c3e50">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -67,55 +66,45 @@
   <div id="data-container" class="grid"></div>
 
   <script>
-    // Aktuelle Apps Script Web-App URL
-    const API_URL = "https://script.google.com/macros/s/AKfycby7IYBNifb-tZINlWPNo_zQzHnd7aEuvaPL-C7s3AXvOybcigeiBugTshacPhk58uW9oQ/exec";
+    // Aktuelle Apps Script Web-App URL (mit JSONP)
+    const API_URL = "https://script.google.com/macros/s/AKfycbwftqz-44toEmSzKLhTEAaZpcmFq7He9N1ij0JEAiV187NVuGwiakaLykxPNzcUk29Xhg/exec";
 
-    async function loadData() {
+    // Callback-Funktion für JSONP
+    window.handleData = function(data) {
       const loadingEl = document.getElementById('loading');
       const containerEl = document.getElementById('data-container');
 
-      try {
-        const response = await fetch(API_URL, { redirect: "follow" });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP-Fehler ${response.status}`);
-        }
+      loadingEl.style.display = 'none';
+      containerEl.innerHTML = '';
 
-        const rawText = await response.text();
-        
-        let data;
-        try {
-          data = JSON.parse(rawText);
-        } catch (e) {
-          console.error("Antwort von Google war kein JSON:", rawText);
-          throw new Error("Kein Zugriff auf Google Script. Prüfe in Apps Script, ob 'Wer hat Zugriff' auf 'Jeder' steht.");
-        }
-
-        loadingEl.style.display = 'none';
-
-        if (!data || data.length === 0) {
-          containerEl.innerHTML = "<p>Keine Daten in der Tabelle gefunden.</p>";
-          return;
-        }
-
-        data.forEach(item => {
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.innerHTML = `
-            <div class="card-label">${item.label || 'Wert'}</div>
-            <div class="card-value">${item.value !== undefined ? item.value : '0'}</div>
-          `;
-          containerEl.appendChild(card);
-        });
-
-      } catch (error) {
-        console.error("Fehler beim Laden:", error);
-        loadingEl.innerText = error.message;
-        loadingEl.style.color = "#dc2626";
+      if (!data || data.length === 0) {
+        containerEl.innerHTML = "<p>Keine Daten in der Tabelle gefunden.</p>";
+        return;
       }
+
+      data.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="card-label">${item.label || 'Wert'}</div>
+          <div class="card-value">${item.value !== undefined ? item.value : '0'}</div>
+        `;
+        containerEl.appendChild(card);
+      });
+    };
+
+    function loadDataJSONP() {
+      const script = document.createElement('script');
+      script.src = API_URL + "?callback=handleData";
+      script.onerror = function() {
+        const loadingEl = document.getElementById('loading');
+        loadingEl.innerText = "Fehler beim Laden der Daten (Netzwerkfehler).";
+        loadingEl.style.color = "#dc2626";
+      };
+      document.body.appendChild(script);
     }
 
-    loadData();
+    loadDataJSONP();
 
     // Service Worker registrieren
     if ('serviceWorker' in navigator) {
