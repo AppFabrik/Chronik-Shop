@@ -1,6 +1,6 @@
 {
   "name": "Chronik-Übersicht",
-  "short_name": "Chronik-Übersicht",
+  "short_name": "Chronik",
   "description": "Ergebnisse und Übersicht der Chronik aus Google Sheets",
   "start_url": "./index.html",
   "display": "standalone",

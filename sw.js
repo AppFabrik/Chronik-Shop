@@ -33,7 +33,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Netzwerkanfragen abfangen: Erst Netzwerk versuchen, bei Fehler auf Cache zurückgreifen
+// Netzwerkanfragen abfangen: Erst Netzwerk versuchen (für frische Sheets-Daten), bei Offline-Fehler auf Cache zurückgreifen
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request).catch(() => {

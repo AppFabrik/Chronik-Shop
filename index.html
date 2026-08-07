@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chronik-Ãœbersicht</title>
+  <title>Chronik-Übersicht</title>
   
   <!-- PWA Manifest & Themes -->
   <link rel="manifest" href="manifest.json">
@@ -62,13 +62,13 @@
 </head>
 <body>
 
-  <h1>Chronik-Ãœbersicht</h1>
+  <h1>Chronik-Übersicht</h1>
   <div id="loading">Daten werden geladen...</div>
   <div id="data-container" class="grid"></div>
 
   <script>
-    // Neue Apps Script Web-App URL (Version 2)
-    const API_URL = "https://script.google.com/macros/s/AKfycbyiM7BJVE_iMqCmYKtwULT4Ze2povzYeMVm4mIuNEaMKSMD3rYj8j1a4cQzX7VZVQPDdw/exec";
+    // Neue Apps Script Web-App URL
+    const API_URL = "https://script.google.com/macros/s/AKfycbxHkp3RE5ZBwO8_yl9sVfkfRe6ytNmTTYmI8GLkOJ-L2QhqjgXDw5WscloixFdM8eG-Qg/exec";
 
     async function loadData() {
       const loadingEl = document.getElementById('loading');
