@@ -3,265 +3,114 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bestellhistorie Live Viewer</title>
+  <title>Chronik-Übersicht</title>
+  
+  <!-- PWA Manifest & Themes -->
   <link rel="manifest" href="manifest.json">
-  <style>
-    :root {
-      --primary-color: #007bff;
-      --bg-color: #f4f6f9;
-      --card-bg: #ffffff;
-      --text-color: #333333;
-    }
+  <meta name="theme-color" content="#2c3e50">
+  <link rel="apple-touch-icon" href="icon-192.png">
 
+  <style>
     body {
       font-family: system-ui, -apple-system, sans-serif;
+      padding: 20px;
+      background-color: #f4f6f8;
       margin: 0;
-      padding: 1.5rem;
-      background-color: var(--bg-color);
-      color: var(--text-color);
     }
-
-    header {
-      max-width: 1200px;
-      margin: 0 auto 1.5rem auto;
-    }
-
     h1 {
-      margin: 0 0 1rem 0;
-      font-size: 1.5rem;
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 24px;
     }
-
-    /* Suche & Filter-Leiste */
-    .filter-container {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
+    #loading {
+      text-align: center;
+      color: #666;
+      font-size: 16px;
+      margin-top: 40px;
     }
-
-    .search-input {
-      width: 100%;
-      padding: 0.8rem 1rem;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      outline: none;
-      box-sizing: border-box;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .search-input:focus {
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
-    }
-
-    /* Responsives Card-Grid */
-    .cards-grid {
+    .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1.25rem;
-      max-width: 1200px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+      max-width: 800px;
       margin: 0 auto;
     }
-
-    /* Einzelne Karte */
     .card {
-      background: var(--card-bg);
-      border-radius: 10px;
-      padding: 1.25rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      border: 1px solid #eaeaea;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid #e2e8f0;
       display: flex;
       flex-direction: column;
-      gap: 0.6rem;
-      transition: transform 0.2s, box-shadow 0.2s;
+      justify-content: space-between;
     }
-
-    .card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-    }
-
-    .card-item {
-      display: flex;
-      flex-direction: column;
-      font-size: 0.9rem;
-    }
-
-    .card-item-label {
-      font-size: 0.75rem;
+    .card-label {
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      color: #6c757d;
-      font-weight: 600;
+      margin-bottom: 8px;
     }
-
-    .card-item-value {
-      font-size: 1rem;
-      color: #212529;
-      word-break: break-word;
-    }
-
-    /* Erstes Feld auf der Karte als Titel hervorheben */
-    .card-item:first-child .card-item-value {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: var(--primary-color);
-    }
-
-    .no-results {
-      grid-column: 1 / -1;
-      text-align: center;
-      padding: 3rem;
-      color: #6c757d;
+    .card-value {
+      font-size: 22px;
+      font-weight: bold;
+      color: #0f172a;
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>Bestellhistorie</h1>
-    <div class="filter-container">
-      <input 
-        type="text" 
-        id="search-input" 
-        class="search-input" 
-        placeholder="Suchen..." 
-        oninput="handleSearch()"
-      />
-    </div>
-  </header>
-
-  <main class="cards-grid" id="cards-container">
-    <div class="no-results">Lade Daten aus Google Sheets...</div>
-  </main>
+  <h1>Chronik-Übersicht</h1>
+  <div id="loading">Daten werden geladen...</div>
+  <div id="data-container" class="grid"></div>
 
   <script>
-    const SHEET_ID = '1G4e7YcmhUGxaAKk4fVyzZs4wILx4DGCaSp9sg8Ylpe8';
-    const SHEET_NAME = 'Bestellhistorie';
-    
-    // Zielt exakt auf das Tabellenblatt "Bestellhistorie"
-    const URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}&headers=1`;
+    // Neue Apps Script Web-App URL (Version 2)
+    const API_URL = "https://script.google.com/macros/s/AKfycbyiM7BJVE_iMqCmYKtwULT4Ze2povzYeMVm4mIuNEaMKSMD3rYj8j1a4cQzX7VZVQPDdw/exec";
 
-    let rawData = [];
+    async function loadData() {
+      const loadingEl = document.getElementById('loading');
+      const containerEl = document.getElementById('data-container');
 
-    async function loadSheetData() {
-      const container = document.getElementById('cards-container');
-      
       try {
-        const response = await fetch(URL);
-        
-        if (!response.ok) {
-          throw new Error(`Server antwortete mit Status ${response.status}`);
+        const response = await fetch(API_URL);
+        const data = await response.json();
+
+        loadingEl.style.display = 'none';
+
+        if (!data || data.length === 0) {
+          containerEl.innerHTML = "<p>Keine Daten gefunden.</p>";
+          return;
         }
 
-        const text = await response.text();
-        
-        if (text.includes('<!DOCTYPE html>') || text.includes('google-site-verification')) {
-          throw new Error('Das Google Sheet ist nicht öffentlich freigegeben ("Jeder mit dem Link").');
-        }
-
-        // Dynamische Extraktion per RegEx (verhindert JSON-Parse-Fehler)
-        const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/);
-        
-        if (!match || !match[1]) {
-          throw new Error('Das Datenformat von Google Sheets konnte nicht gelesen werden.');
-        }
-
-        const data = JSON.parse(match[1]);
-
-        if (data.status === 'error') {
-          const msg = data.errors && data.errors[0] ? data.errors[0].detailed_message : 'Unbekannter Google-Fehler';
-          throw new Error(`Google Sheets meldet: ${msg}`);
-        }
-
-        rawData = parseGoogleSheetData(data.table);
-        renderCards(rawData);
+        // Rendert die 4 Werte als saubere Dashboard-Kacheln
+        data.forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <div class="card-label">${item.label}</div>
+            <div class="card-value">${item.value || '0'}</div>
+          `;
+          containerEl.appendChild(card);
+        });
 
       } catch (error) {
-        console.error('Fehler beim Laden:', error);
-        container.innerHTML = `
-          <div class="no-results" style="color: #d9534f;">
-            <strong>Fehler beim Laden der Daten!</strong><br><br>
-            <code>${error.message}</code><br><br>
-            <small>Bitte prüfe die Freigabe der Tabelle oder öffne die Seite in einem privaten Tab.</small>
-          </div>`;
+        console.error("Fehler beim Laden:", error);
+        loadingEl.innerText = "Fehler beim Laden der Daten.";
       }
     }
 
-    function parseGoogleSheetData(table) {
-      if (!table || !table.rows) return [];
+    loadData();
 
-      const headers = table.cols.map((col, index) => {
-        return col.label && col.label.trim() !== '' ? col.label : `Spalte ${index + 1}`;
-      });
-
-      return table.rows.map(row => {
-        const rowData = {};
-        headers.forEach((header, index) => {
-          const cell = row.c ? row.c[index] : null;
-          rowData[header] = cell ? (cell.f || cell.v ?? '') : '';
-        });
-        return rowData;
-      });
-    }
-
-    function renderCards(items) {
-      const container = document.getElementById('cards-container');
-      container.innerHTML = '';
-
-      if (items.length === 0) {
-        container.innerHTML = '<div class="no-results">Keine Einträge in der Bestellhistorie gefunden.</div>';
-        return;
-      }
-
-      items.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'card';
-
-        Object.entries(item).forEach(([label, value]) => {
-          if (value !== '') {
-            const field = document.createElement('div');
-            field.className = 'card-item';
-            
-            const labelEl = document.createElement('span');
-            labelEl.className = 'card-item-label';
-            labelEl.textContent = label;
-
-            const valueEl = document.createElement('span');
-            valueEl.className = 'card-item-value';
-            valueEl.textContent = value;
-
-            field.appendChild(labelEl);
-            field.appendChild(valueEl);
-            card.appendChild(field);
-          }
-        });
-
-        container.appendChild(card);
-      });
-    }
-
-    function handleSearch() {
-      const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
-      
-      if (!searchTerm) {
-        renderCards(rawData);
-        return;
-      }
-
-      const filtered = rawData.filter(item => {
-        return Object.values(item).some(val => 
-          String(val).toLowerCase().includes(searchTerm)
-        );
-      });
-
-      renderCards(filtered);
-    }
-
-    loadSheetData();
-
+    // Service Worker registrieren
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('Service Worker aktiv:', reg))
+          .catch(err => console.error('Service Worker Fehler:', err));
+      });
     }
   </script>
 </body>
