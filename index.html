@@ -3,88 +3,197 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chronik-�bersicht</title>
+  <title>Chronik-&Uuml;bersicht</title>
   
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#2c3e50">
+  <meta name="theme-color" content="#1e293b">
   <link rel="apple-touch-icon" href="icon-192.png">
 
   <style>
+    :root {
+      --bg-color: #f1f5f9;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent-blue: #2563eb;
+      --accent-green: #16a34a;
+      --border-color: #e2e8f0;
+    }
+
     body {
-      font-family: system-ui, -apple-system, sans-serif;
-      padding: 20px;
-      background-color: #f4f6f8;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      color: var(--text-main);
+      padding: 24px 16px;
       margin: 0;
+      min-height: 100vh;
+      box-sizing: border-box;
     }
-    h1 {
-      text-align: center;
-      color: #2c3e50;
-      margin-bottom: 24px;
-    }
-    #loading {
-      text-align: center;
-      color: #666;
-      font-size: 16px;
-      margin-top: 40px;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 16px;
+
+    .container {
       max-width: 800px;
       margin: 0 auto;
     }
+
+    header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    header h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: #1e293b;
+      margin: 0 0 6px 0;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Skeleton / Loading State */
+    #loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid #cbd5e1;
+      border-radius: 50%;
+      border-top-color: var(--accent-blue);
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Grid Layout */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    /* Card Styling */
     .card {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      border: 1px solid #e2e8f0;
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px 22px;
+      box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      border: 1px solid var(--border-color);
+      position: relative;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      animation: fadeIn 0.4s ease-out forwards;
     }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Farbige Akzentleiste oben an den Karten */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--accent-blue);
+    }
+
+    /* Finanzen-Kacheln grün hervorheben */
+    .card.is-money::before {
+      background: var(--accent-green);
+    }
+
     .card-label {
-      font-size: 13px;
-      color: #64748b;
-      font-weight: 600;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
+      letter-spacing: 0.6px;
+      margin-bottom: 12px;
     }
+
     .card-value {
-      font-size: 22px;
-      font-weight: bold;
-      color: #0f172a;
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.5px;
+    }
+
+    .card.is-money .card-value {
+      color: #065f46; /* Dunkelgrün für Geldbeträge */
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
 
-  <h1>Chronik-�bersicht</h1>
-  <div id="loading">Daten werden geladen...</div>
-  <div id="data-container" class="grid"></div>
+  <div class="container">
+    <header>
+      <h1>Chronik-&Uuml;bersicht</h1>
+      <div id="status-text" class="subtitle">Daten werden abgerufen...</div>
+    </header>
+
+    <div id="loading">
+      <div class="spinner"></div><br>
+      Aktuelle Zahlen werden geladen...
+    </div>
+
+    <div id="data-container" class="grid"></div>
+  </div>
 
   <script>
-    // Aktuelle Apps Script Web-App URL (mit JSONP)
     const API_URL = "https://script.google.com/macros/s/AKfycbwftqz-44toEmSzKLhTEAaZpcmFq7He9N1ij0JEAiV187NVuGwiakaLykxPNzcUk29Xhg/exec";
 
-    // Callback-Funktion f�r JSONP
+    // Callback-Funktion für JSONP
     window.handleData = function(data) {
       const loadingEl = document.getElementById('loading');
       const containerEl = document.getElementById('data-container');
+      const statusEl = document.getElementById('status-text');
 
       loadingEl.style.display = 'none';
       containerEl.innerHTML = '';
 
       if (!data || data.length === 0) {
-        containerEl.innerHTML = "<p>Keine Daten in der Tabelle gefunden.</p>";
+        containerEl.innerHTML = "<p style='text-align:center; grid-column: 1/-1; color: var(--text-muted);'>Keine Daten in der Tabelle gefunden.</p>";
+        statusEl.innerText = "Keine Daten verfügbar";
         return;
       }
 
+      // Aktualisierungs-Uhrzeit anzeigen
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+      statusEl.innerText = `Zuletzt aktualisiert um ${timeString} Uhr`;
+
       data.forEach(item => {
         const card = document.createElement('div');
-        card.className = 'card';
+        
+        // Prüfen, ob es sich um Geldbeträge handelt (für grüne Farbakzente)
+        const isMoney = item.label && (item.label.includes('€') || item.label.toLowerCase().includes('brutto') || item.label.toLowerCase().includes('netto') || item.label.toLowerCase().includes('betrag'));
+        
+        card.className = `card ${isMoney ? 'is-money' : ''}`;
         card.innerHTML = `
           <div class="card-label">${item.label || 'Wert'}</div>
           <div class="card-value">${item.value !== undefined ? item.value : '0'}</div>
@@ -98,8 +207,10 @@
       script.src = API_URL + "?callback=handleData";
       script.onerror = function() {
         const loadingEl = document.getElementById('loading');
+        const statusEl = document.getElementById('status-text');
         loadingEl.innerText = "Fehler beim Laden der Daten (Netzwerkfehler).";
         loadingEl.style.color = "#dc2626";
+        statusEl.innerText = "Verbindungsfehler";
       };
       document.body.appendChild(script);
     }
